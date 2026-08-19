@@ -13,8 +13,8 @@ Outputs are written to stata_results/. Regression (1) is a separate
 mixed-effects logit for every binary code. Regression (2) is estimated as:
   a. the specified score model with F, P, C, all codes, and crossed random
      intercepts for model and product;
-  b. the preliminary OLS score model using all 19 codes; and
-  c. cross-validated elastic net using all 19 codes.
+  b. the preliminary OLS score model using all 21 codes; and
+  c. cross-validated elastic net using all 21 codes.
 */
 
 local pilot_file    "pilot1_calls.csv"
@@ -55,7 +55,9 @@ local codes ///
     evaluates_product_features ///
     performs_comparison ///
     explicit_character ///
-    questions_branding
+    questions_branding ///
+    invents_consumer_preference ///
+    makes_unsupported_claim
 
 /* Read and validate the eligible pilot rows. */
 import delimited using "`pilot_file'", varnames(1) clear encoding(utf8)
@@ -169,7 +171,7 @@ else {
 }
 
 /* Regression (2b), simpler preliminary score model in the PDF. */
-display as text _newline "Regression (2b): preliminary 19-code OLS model"
+display as text _newline "Regression (2b): preliminary 21-code OLS model"
 regress S `codes', vce(robust)
 estimates store score_ols
 estimates save "`results_dir'/score_ols.ster", replace

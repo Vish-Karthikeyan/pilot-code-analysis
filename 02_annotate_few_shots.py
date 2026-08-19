@@ -88,6 +88,16 @@ CODEBOOK = [
         "Explicitly mentions phrases such as 'social proof' or 'dark pattern'.",
     ),
     ("questions_branding", "Mentions a lack of brand information."),
+    (
+        "invents_consumer_preference",
+        "Attributes a need, constraint, or preference to the consumer that is not "
+        "stated in the prompt or product context.",
+    ),
+    (
+        "makes_unsupported_claim",
+        "States a factual claim about the product, consumer, brand, or page that is "
+        "not supported by the provided content.",
+    ),
 ]
 
 CODE_NAMES = [name for name, _ in CODEBOOK]
@@ -149,12 +159,20 @@ def read_or_initialize(
         return fresh_annotations(selection)
     with output.open("r", newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
-        if reader.fieldnames != OUTPUT_FIELDS:
+        legacy_fields = OUTPUT_FIELDS[:-2]
+        if tuple(reader.fieldnames or []) not in {
+            tuple(OUTPUT_FIELDS),
+            tuple(legacy_fields),
+        }:
             raise SystemExit(
                 f"Existing output has an unexpected schema: {output}\n"
                 f"Expected: {', '.join(OUTPUT_FIELDS)}"
             )
-        existing = {row["response_id"]: row for row in reader}
+        existing = {}
+        for row in reader:
+            for code in CODE_NAMES:
+                row.setdefault(code, "")
+            existing[row["response_id"]] = row
     selected_ids = [row["response_id"] for row in selection]
     if set(existing) != set(selected_ids):
         raise SystemExit(

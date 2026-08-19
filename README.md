@@ -44,7 +44,7 @@ Output: `selected_20.csv`
 
 ### 2. Human annotation
 
-`02_annotate_few_shots.py` displays each reasoning element while requesting a binary value for every one of the 19 codebook variables. It checkpoints after every decision and displays global progress over all 380 decisions.
+`02_annotate_few_shots.py` displays each reasoning element while requesting a binary value for every one of the 21 codebook variables. It checkpoints after every decision and displays global progress over all 420 decisions. The codebook includes checks for invented consumer preferences and unsupported factual claims.
 
 Output: `coding_few_shots.csv`
 
@@ -56,7 +56,7 @@ python3 run_pipeline.py --annotator your_name
 
 ### 3. LLM-assisted coding (optional)
 
-`03_llm_code_pilot.py` compiles the 20 completed human annotations as few-shot examples and codes all eligible pilot rows through OpenRouter. It requires strict JSON-schema output for the 19 binary variables, retries transient failures, checkpoints every successful row, and resumes without recoding completed IDs.
+`03_llm_code_pilot.py` compiles the 20 completed human annotations as few-shot examples and codes all eligible pilot rows through OpenRouter. It requires strict JSON-schema output for the 21 binary variables, retries transient failures, checkpoints every successful row, and resumes without recoding completed IDs.
 
 Outputs:
 
@@ -69,7 +69,7 @@ Outputs:
 
 - One crossed-random-effects logistic regression for each binary code.
 - The full mixed-effects recommendation-score model.
-- The preliminary 19-code OLS model with robust standard errors.
+- The preliminary 21-code OLS model with robust standard errors.
 - A 10-fold cross-validated elastic-net model.
 
 The wrapper searches for Stata on `PATH` and in standard macOS application locations. For a custom installation, set `STATA_BIN`:

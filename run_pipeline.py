@@ -44,6 +44,8 @@ CODE_NAMES = [
     "performs_comparison",
     "explicit_character",
     "questions_branding",
+    "invents_consumer_preference",
+    "makes_unsupported_claim",
 ]
 
 
