@@ -1,0 +1,28 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# macOS and editors
+.DS_Store
+.idea/
+.vscode/
+
+# Generated pipeline data
+selected_20.csv
+coding_few_shots.csv
+pilot_codebook.csv
+pilot_codebook_errors.jsonl
+
+# Stata outputs
+stata_results/
+*.log
+*.smcl
+*.ster
+*.dta
