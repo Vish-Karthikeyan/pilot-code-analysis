@@ -57,13 +57,6 @@ def parse_args() -> argparse.Namespace:
         "--annotator", help="Annotator name/ID; prompted for when omitted."
     )
     parser.add_argument(
-        "--assignment",
-        type=int,
-        choices=range(1, 5),
-        metavar="{1,2,3,4}",
-        help="Annotate one assigned block of five responses instead of all 20.",
-    )
-    parser.add_argument(
         "--status",
         action="store_true",
         help="Show pipeline status and exit without changing anything.",
@@ -247,8 +240,6 @@ def main() -> int:
         ]
         if args.annotator:
             annotation_command.extend(["--annotator", args.annotator])
-        if args.assignment:
-            annotation_command.extend(["--assignment", str(args.assignment)])
         run(annotation_command)
         annotated_rows, annotated_steps, annotation_total = annotation_progress()
 

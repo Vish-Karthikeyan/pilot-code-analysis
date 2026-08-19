@@ -105,13 +105,6 @@ def parse_args() -> argparse.Namespace:
         help="Annotator name or ID. If omitted, the interface asks for it.",
     )
     parser.add_argument(
-        "--assignment",
-        type=int,
-        choices=range(1, 5),
-        metavar="{1,2,3,4}",
-        help="Annotate one assigned block of five rows; omit to annotate all rows.",
-    )
-    parser.add_argument(
         "--no-clear",
         action="store_true",
         help="Do not clear the terminal between coding questions.",
@@ -208,14 +201,6 @@ def main() -> None:
     rows = read_or_initialize(args.output, selection)
     write_checkpoint(args.output, rows)
 
-    if args.assignment is not None:
-        if len(rows) != 20:
-            raise SystemExit("--assignment requires the standard 20-row sample.")
-        start = (args.assignment - 1) * 5
-        assigned_indexes = range(start, start + 5)
-    else:
-        assigned_indexes = range(len(rows))
-
     annotator = (args.annotator or "").strip()
     if not annotator:
         annotator = input("Annotator name or ID: ").strip()
@@ -224,7 +209,7 @@ def main() -> None:
 
     total = len(rows) * len(CODEBOOK)
     try:
-        for row_index in assigned_indexes:
+        for row_index in range(len(rows)):
             row = rows[row_index]
             for code_index, (code, definition) in enumerate(CODEBOOK, start=1):
                 if row[code] in {"0", "1"}:
@@ -272,7 +257,7 @@ def main() -> None:
         print(f"Annotation complete: {args.output}")
     else:
         print(
-            f"Assignment complete. Global annotation has {total - done} steps remaining; "
+            f"Annotation has {total - done} steps remaining; "
             f"progress saved to {args.output}."
         )
 

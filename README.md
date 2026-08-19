@@ -48,13 +48,10 @@ Output: `selected_20.csv`
 
 Output: `coding_few_shots.csv`
 
-For four annotators handling five responses each, run the wrapper four times with a shared working directory:
+One human annotator codes all 20 selected reasoning elements. The runner asks for the annotator's name or ID once and then proceeds through every remaining code decision:
 
 ```bash
-python3 run_pipeline.py --annotator annotator_1 --assignment 1
-python3 run_pipeline.py --annotator annotator_2 --assignment 2
-python3 run_pipeline.py --annotator annotator_3 --assignment 3
-python3 run_pipeline.py --annotator annotator_4 --assignment 4
+python3 run_pipeline.py --annotator your_name
 ```
 
 ### 3. LLM-assisted coding (optional)
