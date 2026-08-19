@@ -10,6 +10,7 @@ import os
 import shutil
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 
 
@@ -18,6 +19,9 @@ PILOT_FILE = ROOT / "pilot1_calls.csv"
 SAMPLE_FILE = ROOT / "selected_20.csv"
 ANNOTATION_FILE = ROOT / "coding_few_shots.csv"
 CODEBOOK_FILE = ROOT / "pilot_codebook.csv"
+ERRORS_FILE = ROOT / "pilot_codebook_errors.jsonl"
+STATA_RESULTS_DIR = ROOT / "stata_results"
+ARCHIVE_FILE = ROOT / "pipeline_outputs.zip"
 ENV_FILE = ROOT / ".env"
 
 CODE_NAMES = [
@@ -176,6 +180,78 @@ def run(command: list[str], *, env: dict[str, str] | None = None) -> None:
     subprocess.run(command, cwd=ROOT, env=env, check=True)
 
 
+def create_output_archive() -> Path | None:
+    """Atomically package every output currently produced by the pipeline."""
+    artifacts: list[tuple[Path, str]] = []
+    for path in (ANNOTATION_FILE, CODEBOOK_FILE, ERRORS_FILE):
+        if path.is_file():
+            artifacts.append((path, path.name))
+
+    stata_files = (
+        sorted(path for path in STATA_RESULTS_DIR.rglob("*") if path.is_file())
+        if STATA_RESULTS_DIR.is_dir()
+        else []
+    )
+    artifacts.extend(
+        (path, path.relative_to(ROOT).as_posix()) for path in stata_files
+    )
+    if not artifacts:
+        print("No completed pipeline outputs are available to package.")
+        return None
+
+    included_names = [archive_name for _, archive_name in artifacts]
+    annotated_rows, annotated_steps, annotation_total = annotation_progress()
+    annotation_status = "not produced"
+    if ANNOTATION_FILE.is_file():
+        annotation_status = (
+            "included (complete)"
+            if annotated_rows == 20 and annotated_steps == annotation_total
+            else "included (partial)"
+        )
+    eligible = eligible_pilot_ids()
+    codebook_status = "not produced"
+    if CODEBOOK_FILE.is_file():
+        codebook_status = (
+            "included (complete)"
+            if eligible and coded_ids() == eligible
+            else "included (partial)"
+        )
+    manifest_lines = [
+        "DP CoT Pipeline Output Archive",
+        "",
+        "Expected full-pipeline outputs:",
+        f"- Human annotation database: {annotation_status}",
+        f"- Final LLM codebook database: {codebook_status}",
+        f"- Stata results: {'included' if stata_files else 'not produced'}",
+        "",
+        "Files in this archive:",
+        *[f"- {name}" for name in included_names],
+        "",
+    ]
+
+    temporary = ARCHIVE_FILE.with_name(f".{ARCHIVE_FILE.name}.tmp")
+    try:
+        with zipfile.ZipFile(
+            temporary, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9
+        ) as archive:
+            for source, archive_name in artifacts:
+                archive.write(source, archive_name)
+            archive.writestr("OUTPUT_MANIFEST.txt", "\n".join(manifest_lines))
+        os.replace(temporary, ARCHIVE_FILE)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+    print(f"Output archive created: {ARCHIVE_FILE}")
+    return ARCHIVE_FILE
+
+
+def finish(message: str, *, exit_code: int = 0) -> int:
+    print(message)
+    create_output_archive()
+    return exit_code
+
+
 def show_status() -> None:
     eligible = eligible_pilot_ids()
     annotated_rows, annotated_steps, annotation_total = annotation_progress()
@@ -195,6 +271,7 @@ def show_status() -> None:
     print(f"  LLM-coded eligible rows:   {len(coded)}/{len(eligible)}")
     print(f"  OpenRouter key configured: {'yes' if configured_key else 'no'}")
     print(f"  Stata detected:            {stata or 'no'}")
+    print(f"  Output archive:            {ARCHIVE_FILE if ARCHIVE_FILE.is_file() else 'no'}")
 
 
 def main() -> int:
@@ -262,8 +339,9 @@ def main() -> int:
             "resumable, but review OpenRouter pricing before continuing."
         )
         if not ask_yes_no("Run the LLM coding step now?", default=False):
-            print("Stopping after human annotation. No API key is required for this path.")
-            return 0
+            return finish(
+                "Stopping after human annotation. No API key is required for this path."
+            )
 
         api_key = os.environ.get("OPENROUTER_API_KEY") or dotenv_value(
             "OPENROUTER_API_KEY"
@@ -273,14 +351,12 @@ def main() -> int:
                 "Enter your OpenRouter API key (input is hidden; blank cancels): "
             ).strip()
         if not api_key:
-            print("No API key supplied. Stopping after human annotation.")
-            return 0
+            return finish("No API key supplied. Stopping after human annotation.")
         if not ask_yes_no(
             f"Confirm paid coding of up to {len(eligible) - len(coded)} remaining rows?",
             default=False,
         ):
-            print("LLM coding cancelled.")
-            return 0
+            return finish("LLM coding cancelled.")
 
         child_env = os.environ.copy()
         child_env["OPENROUTER_API_KEY"] = api_key
@@ -292,7 +368,7 @@ def main() -> int:
             f"LLM coding is incomplete ({len(coded)}/{len(eligible)}). "
             "Rerun this command to resume."
         )
-        return 1
+        return finish("Packaging the outputs completed so far.", exit_code=1)
     print(f"LLM coding complete: {len(coded)}/{len(eligible)} eligible rows.")
 
     stata = find_stata()
@@ -302,15 +378,17 @@ def main() -> int:
             "To run regressions later, install Stata or set STATA_BIN to its "
             "executable and rerun this command."
         )
-        return 0
+        return finish("Packaging all available outputs.")
 
     print(f"\nOptional Stata installation detected: {stata}")
     if not ask_yes_no("Run the Section 1 regressions now?", default=True):
-        print("Stopping before Stata. Rerun this command whenever you are ready.")
-        return 0
+        return finish(
+            "Stopping before Stata. Rerun this command whenever you are ready."
+        )
     run([stata, "-b", "do", str(ROOT / "04_run_regressions.do")])
-    print("\nPipeline complete. Regression outputs are in stata_results/.")
-    return 0
+    return finish(
+        "\nPipeline complete. Regression outputs are in stata_results/."
+    )
 
 
 if __name__ == "__main__":

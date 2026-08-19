@@ -19,6 +19,7 @@ selected_20.csv
 coding_few_shots.csv
 pilot_codebook.csv
 pilot_codebook_errors.jsonl
+pipeline_outputs.zip
 
 # Stata outputs
 stata_results/

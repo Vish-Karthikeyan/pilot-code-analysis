@@ -81,6 +81,17 @@ python3 run_pipeline.py
 
 Output: `stata_results/`
 
+### 5. Output archive
+
+At each supported stopping point, `run_pipeline.py` creates `pipeline_outputs.zip`. A complete run packages:
+
+- `coding_few_shots.csv` - the human annotation results database.
+- `pilot_codebook.csv` - the final LLM-coded codebook database.
+- `stata_results/` - all Stata logs, saved estimates, and analysis data.
+- `OUTPUT_MANIFEST.txt` - a list of included and unavailable outputs.
+
+If the workflow stops after annotation or LLM coding because an API key or Stata is unavailable, the ZIP contains every output produced up to that point and the manifest identifies the stages not run. Rerunning the pipeline replaces the archive with an updated version.
+
 ## Check progress
 
 This command performs no writes and makes no API calls:
@@ -98,7 +109,7 @@ python3 03_llm_code_pilot.py
 stata -b do 04_run_regressions.do
 ```
 
-Use `--help` with any Python script for additional options. Generated data, Stata results, local environments, and secrets are excluded by `.gitignore`.
+Use `--help` with any Python script for additional options. Generated data, the output ZIP, Stata results, local environments, and secrets are excluded by `.gitignore`.
 
 ## Repository contents
 
